@@ -16,3 +16,8 @@ def test_r1_is_passing():
 # bug report 2
 def test_r2_clamp():
     assert clamp(10, 5, 15) == 10
+
+
+# bug report 3
+def test_r3_is_valid_password():
+    assert is_valid_password("abcdefg1") is True, "8 characters with a digit is 'at least 8'"
