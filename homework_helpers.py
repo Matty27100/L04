@@ -110,6 +110,9 @@ def _owner(code, line):
             above = lines[n.lineno - 2] if n.lineno >= 2 else ""
             m = re.match(r"\s*#\s*Level\s*(.+)", above)
             return n.name, (m.group(1).strip() if m else "")
+    for n in ast.parse(code).body:                         # a module-level line, e.g. a constant
+        if isinstance(n, ast.Assign) and n.lineno <= line <= n.end_lineno:
+            return ", ".join(t.id for t in n.targets if isinstance(t, ast.Name)) or "?", ""
     return "?", ""
 
 
@@ -144,21 +147,22 @@ def _short(text, n=90):
     return text if len(text) <= n else text[: n - 3].rstrip() + "..."
 
 
-def homework_report(files, path="reports/homework_report.md"):
-    """Writes a Markdown table with the results of each file: bug reports, tests, before and after the fix."""
-    results = [round_results(f) for f in files]
+def homework_report(files, path="reports/homework_report.md", results=None, fixed_by="bug-fixer skill"):
+    """Writes a Markdown table with the results of each file: bug reports, tests, before and after the fix.
+    `results` can add rounds computed elsewhere (round_results on another branch), with their own "fixed_by"."""
+    results = list(results or []) + [dict(round_results(f), fixed_by=fixed_by) for f in files]
     out = ["# L04 homework: results", "",
            "Pipeline per file: bug-finder (skill 1) -> test-writer (skill 2) -> run tests -> "
-           "bug-fixer (skill 3) -> run the same tests again.", "",
+           "fix -> run the same tests again. For the homework the fix is done by the bug-fixer (skill 3).", "",
            "A test is **good** when it fails on the original code and passes on the fixed code.", "",
            "## Summary", "",
-           "| File | Functions | Bug reports | Tests | Fail before fix | Pass after fix | Good tests |",
-           "|---|---|---|---|---|---|---|"]
+           "| File | Functions | Bug reports | Tests | Fail before fix | Pass after fix | Good tests | Fixed by |",
+           "|---|---|---|---|---|---|---|---|"]
     for r in results:
         fail = sum(x["before"] in ("FAILED", "ERROR") for x in r["rows"])
         ok = sum(x["after"] == "PASSED" for x in r["rows"])
         out.append(f"| {r['file']} | {r['functions']} | {r['reports']} | {r['tests']} | {fail}/{r['tests']} "
-                   f"| {ok}/{r['tests']} | {r['good']}/{r['tests']} |")
+                   f"| {ok}/{r['tests']} | {r['good']}/{r['tests']} | {r.get('fixed_by', '')} |")
     for r in results:
         out += ["", f"## {r['file']}", "",
                 "| # | Function | Level | Line | Bug (from the report) | Test | Before fix | After fix | Good |",
