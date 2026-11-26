@@ -1,11 +1,11 @@
 # Bug reports for exercise4.py
 
 Line: 4
-Problem: ADMIN_PASSWORD is written directly in the source code. Anyone who can read the repository (or its git history) knows the admin password, and it cannot be changed without changing the code.
-Example: "admin123" appears in exercise4.py, so check_admin("admin123") returns True for anyone who read the code, expected the secret not to be in the code
-Fix: ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+Problem: Hardcoded admin password in source code is a security vulnerability. The password "admin123" is directly written in the code, making it easily discoverable and exploitable. This violates security best practices and exposes the system to brute-force or dictionary attacks.
+Example: An attacker can simply read the source code to obtain the password.
+Fix: Replace line 4 with: ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
 Line: 14
-Problem: find_user puts the username straight into the SQL string with an f-string. This is SQL injection: an attacker can change the query and get a row for a username that does not exist.
-Example: find_user(db, "x' OR '1'='1") returns the row of ana, expected None
-Fix: return db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+Problem: SQL injection vulnerability. The function directly interpolates the username into a SQL query using f-string, allowing an attacker to inject malicious SQL code. For example, passing ' OR '1'='1' could return all users or crash the query.
+Example: find_user(db, "x' OR '1'='1") returns a row, expected None (or at least not all users).
+Fix: Replace line 14 with: return db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
